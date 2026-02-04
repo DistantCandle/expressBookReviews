@@ -5,10 +5,25 @@ let users = require("./auth_users.js").users;
 const public_users = express.Router();
 
 
-public_users.post("/register", (req, res) => {
-    //Write your code here
-    return res.status(300).json({});
+// Register a new user
+public_users.post('/register', function (req, res) {
+    const { username, password } = req.body;
+
+    // Check if username and password are provided
+    if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+    }
+
+    // Check if username already exists
+    if (users.find(user => user.username === username)) {
+        return res.status(409).json({ message: "Username already exists" });
+    }
+
+    // Add new user
+    users.push({ username, password });
+    return res.status(201).json({ message: "User registered successfully" });
 });
+
 
 // Get the book list available in the shop
 public_users.get('/', function (req, res) {
@@ -95,8 +110,22 @@ public_users.get('/title/:title', function (req, res) {
 
 //  Get book review
 public_users.get('/review/:isbn', function (req, res) {
-    //Write your code here
-    return res.status(300).json({ message: "Yet to be implemente get review" });
+    const isbn = req.params.isbn; // get ISBN from URL
+
+    if (books[isbn]) {
+        // Send only the reviews object
+        const entries = Object.entries(books[isbn].reviews).map(
+            ([key, value]) => `"${key}":${JSON.stringify(value)}`
+        );
+        const formattedBooks = `{\n${entries.join(",\n")}\n}`;
+
+        // Send as plain text so line breaks are visible
+        res.setHeader('Content-Type', 'text/plain');
+        
+        return res.status(200).send(formattedBooks);
+    } else {
+        return res.status(404).json({ message: "Book not found" });
+    }
 });
 
 module.exports.general = public_users;
