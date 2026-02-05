@@ -56,30 +56,8 @@ regd_users.post("/login", (req, res) => {
     }
 });
 
-// Middleware to authenticate review routes
-const reviewAuth = (req, res, next) => {
-    console.log("SESSION:", req.session);
-    console.log("AUTH:", req.session?.authorization);
-
-    if (req.session.authorization) {
-        let token = req.session.authorization.accessToken;
-
-        jwt.verify(token, "access", (err, user) => {
-            if (!err) {
-                req.user = req.session.authorization.username; // store username
-                next();
-            } else {
-                return res.status(403).json({ message: "User not authenticated" });
-            }
-        });
-    } else {
-        return res.status(403).json({ message: "User not logged in" });
-    }
-};
-
-
 // Add a book review
-regd_users.put("/auth/review/:isbn", reviewAuth, (req, res) => {
+regd_users.put("/auth/review/:isbn", (req, res) => {
     const isbn = req.params.isbn;
     const { review } = req.body;
     const username = req.session.authorization?.username;
@@ -102,7 +80,7 @@ regd_users.put("/auth/review/:isbn", reviewAuth, (req, res) => {
     });
 });
 
-regd_users.delete("/auth/review/:isbn", reviewAuth, (req, res) => {
+regd_users.delete("/auth/review/:isbn", (req, res) => {
     const isbn = req.params.isbn;
     const username = req.session.authorization?.username;
 
