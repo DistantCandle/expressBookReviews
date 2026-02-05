@@ -49,11 +49,31 @@ regd_users.post("/login", (req, res) => {
         req.session.authorization = {
             accessToken, username
         }
+        console.log(req.session);
         return res.status(200).send("User successfully logged in");
     } else {
         return res.status(208).json({ message: "Invalid Login. Check username and password" });
     }
 });
+
+// Middleware to authenticate review routes
+const reviewAuth = (req, res, next) => {
+    if (req.session.authorization) {
+        let token = req.session.authorization.accessToken;
+
+        jwt.verify(token, "access", (err, user) => {
+            if (!err) {
+                req.user = req.session.authorization.username; // store username
+                next();
+            } else {
+                return res.status(403).json({ message: "User not authenticated" });
+            }
+        });
+    } else {
+        return res.status(403).json({ message: "User not logged in" });
+    }
+};
+
 
 // Add a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
