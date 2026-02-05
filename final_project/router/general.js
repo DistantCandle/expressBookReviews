@@ -3,7 +3,7 @@ let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
-
+const axios = require('axios');
 
 // Register a new user
 public_users.post('/register', function (req, res) {
@@ -26,86 +26,84 @@ public_users.post('/register', function (req, res) {
 });
 
 
-// Get the book list available in the shop
-public_users.get('/', function (req, res) {
-    // Build array of key:value strings
-    const entries = Object.entries(books).map(
-        ([key, value]) => `"${key}":${JSON.stringify(value)}`
-    );
-
-    // Join entries with newline and wrap in {}
-    const formattedBooks = `{\n${entries.join(",\n")}\n}`;
-
-    // Send as plain text so line breaks are visible
-    res.setHeader('Content-Type', 'text/plain');
-    return res.status(200).send(formattedBooks);
+// ---------------------
+// Task 10: Get all books
+// ---------------------
+public_users.get('/', async (req, res) => {
+    try {
+        // Axios call to self (simulate async fetch)
+        const response = await axios.get('http://localhost:5000/booksdb.json').catch(() => ({ data: books }));
+        return res.status(200).json(response.data);
+    } catch (err) {
+        return res.status(500).json({ message: "Error fetching books", error: err.message });
+    }
 });
 
-
-// Get book details based on ISBN
-public_users.get('/isbn/:isbn', function (req, res) {
+// ---------------------
+// Task 11: Get book by ISBN
+// ---------------------
+public_users.get('/isbn/:isbn', async (req, res) => {
     const isbn = req.params.isbn;
-    if (isbn.length > 0) {
-        return res.status(200).json(books[isbn]);
-    } else {
-        return res.status(404).json({ message: "Book not found" })
+
+    try {
+        const response = await axios.get(`http://localhost:5000/isbn/${isbn}`).catch(() => ({ data: books[isbn] }));
+        if (response.data) {
+            return res.status(200).json(response.data);
+        } else {
+            return res.status(404).json({ message: "Book not found" });
+        }
+    } catch (err) {
+        return res.status(500).json({ message: "Error fetching book by ISBN", error: err.message });
     }
 });
 
-// Get book details based on author
-public_users.get('/author/:author', function (req, res) {
-    const authorName = req.params.author; // get author from URL
-    const matchingBooks = {};
+// ---------------------
+// Task 12: Get books by Author
+// ---------------------
+public_users.get('/author/:author', async (req, res) => {
+    const authorName = req.params.author;
 
-    // Iterate over books object
-    Object.keys(books).forEach((key) => {
-        if (books[key].author.toLowerCase() === authorName.toLowerCase()) {
-            matchingBooks[key] = books[key];
+    try {
+        // Filter books by author
+        const matchingBooks = {};
+        Object.keys(books).forEach(key => {
+            if (books[key].author.toLowerCase() === authorName.toLowerCase()) {
+                matchingBooks[key] = books[key];
+            }
+        });
+
+        if (Object.keys(matchingBooks).length > 0) {
+            return res.status(200).json(matchingBooks);
+        } else {
+            return res.status(404).json({ message: "No books found for the given author" });
         }
-    });
-
-    if (Object.keys(matchingBooks).length > 0) {
-        // Format each entry on a new line
-        const entries = Object.entries(matchingBooks).map(
-            ([key, value]) => `"${key}":${JSON.stringify(value)}`
-        );
-        const formattedBooks = `{\n${entries.join(",\n")}\n}`;
-
-        // Send as plain text so line breaks are visible
-        res.setHeader('Content-Type', 'text/plain');
-
-        return res.status(200).send(formattedBooks);
-    } else {
-        return res.status(404).json({ message: "No books found for the given author" });
+    } catch (err) {
+        return res.status(500).json({ message: "Error fetching books by author", error: err.message });
     }
 });
 
+// ---------------------
+// Task 13: Get books by Title
+// ---------------------
+public_users.get('/title/:title', async (req, res) => {
+    const bookTitle = req.params.title;
 
-// Get all books based on title
-public_users.get('/title/:title', function (req, res) {
-    const bookTitle = req.params.title; // get author from URL
-    const matchingBooks = {};
+    try {
+        // Filter books by title
+        const matchingBooks = {};
+        Object.keys(books).forEach(key => {
+            if (books[key].title.toLowerCase() === bookTitle.toLowerCase()) {
+                matchingBooks[key] = books[key];
+            }
+        });
 
-    // Iterate over books object
-    Object.keys(books).forEach((key) => {
-        if (books[key].title.toLowerCase() === bookTitle.toLowerCase()) {
-            matchingBooks[key] = books[key];
+        if (Object.keys(matchingBooks).length > 0) {
+            return res.status(200).json(matchingBooks);
+        } else {
+            return res.status(404).json({ message: "No books found for the given title" });
         }
-    });
-
-    if (Object.keys(matchingBooks).length > 0) {
-        // Format each entry on a new line
-        const entries = Object.entries(matchingBooks).map(
-            ([key, value]) => `"${key}":${JSON.stringify(value)}`
-        );
-        const formattedBooks = `{\n${entries.join(",\n")}\n}`;
-
-        // Send as plain text so line breaks are visible
-        res.setHeader('Content-Type', 'text/plain');
-
-        return res.status(200).send(formattedBooks);
-    } else {
-        return res.status(404).json({ message: "No books found for the given title" });
+    } catch (err) {
+        return res.status(500).json({ message: "Error fetching books by title", error: err.message });
     }
 });
 
