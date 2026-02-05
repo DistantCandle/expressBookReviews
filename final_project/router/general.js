@@ -53,80 +53,82 @@ public_users.get('/isbn/:isbn', function (req, res) {
 });
 
 // Get book details based on author
+// Get book details based on author
 public_users.get('/author/:author', function (req, res) {
-    const authorName = req.params.author; // get author from URL
-    const matchingBooks = {};
+    const authorName = req.params.author.toLowerCase();
 
-    // Iterate over books object
-    Object.keys(books).forEach((key) => {
-        if (books[key].author.toLowerCase() === authorName.toLowerCase()) {
-            matchingBooks[key] = books[key];
-        }
-    });
+    // Build array of matching books including isbn
+    const matchingBooks = Object.keys(books)
+        .filter(isbn => books[isbn].author.toLowerCase() === authorName)
+        .map(isbn => ({
+            isbn,
+            author: books[isbn].author,
+            title: books[isbn].title,
+            reviews: books[isbn].reviews
+        }));
 
-    if (Object.keys(matchingBooks).length > 0) {
-        // Format each entry on a new line
-        const entries = Object.entries(matchingBooks).map(
-            ([key, value]) => `"${key}":${JSON.stringify(value)}`
-        );
-        const formattedBooks = `{\n${entries.join(",\n")}\n}`;
-
-        // Send as plain text so line breaks are visible
-        res.setHeader('Content-Type', 'text/plain');
-
-        return res.status(200).send(formattedBooks);
+    if (matchingBooks.length > 0) {
+        return res.status(200).json(matchingBooks); // send proper JSON
     } else {
         return res.status(404).json({ message: "No books found for the given author" });
     }
 });
 
 
+
 // Get all books based on title
 public_users.get('/title/:title', function (req, res) {
-    const bookTitle = req.params.title; // get author from URL
-    const matchingBooks = {};
+    const bookTitle = req.params.title.toLowerCase();
 
-    // Iterate over books object
-    Object.keys(books).forEach((key) => {
-        if (books[key].title.toLowerCase() === bookTitle.toLowerCase()) {
-            matchingBooks[key] = books[key];
-        }
-    });
+    // Build array of matching books including isbn
+    const matchingBooks = Object.keys(books)
+        .filter(isbn => books[isbn].title.toLowerCase() === bookTitle)
+        .map(isbn => ({
+            isbn,
+            author: books[isbn].author,
+            title: books[isbn].title,
+            reviews: books[isbn].reviews
+        }));
 
-    if (Object.keys(matchingBooks).length > 0) {
-        // Format each entry on a new line
-        const entries = Object.entries(matchingBooks).map(
-            ([key, value]) => `"${key}":${JSON.stringify(value)}`
-        );
-        const formattedBooks = `{\n${entries.join(",\n")}\n}`;
-
-        // Send as plain text so line breaks are visible
-        res.setHeader('Content-Type', 'text/plain');
-
-        return res.status(200).send(formattedBooks);
+    if (matchingBooks.length > 0) {
+        return res.status(200).json(matchingBooks); // send proper JSON
     } else {
         return res.status(404).json({ message: "No books found for the given title" });
     }
 });
 
-//  Get book review
-public_users.get('/review/:isbn', function (req, res) {
-    const isbn = req.params.isbn; // get ISBN from URL
 
-    if (books[isbn]) {
-        // Send only the reviews object
-        const entries = Object.entries(books[isbn].reviews).map(
-            ([key, value]) => `"${key}":${JSON.stringify(value)}`
-        );
-        const formattedBooks = `{\n${entries.join(",\n")}\n}`;
+// ---------------------
+// Get book reviews by ISBN
+// Endpoint: /review/:isbn
+// ---------------------
+public_users.get('/review/:isbn', async (req, res) => {
+    const isbn = req.params.isbn; // Extract ISBN from URL
 
-        // Send as plain text so line breaks are visible
-        res.setHeader('Content-Type', 'text/plain');
+    try {
+        // Check if the book exists in the database
+        if (!books[isbn]) {
+            return res.status(404).json({ message: "Book not found" });
+        }
 
-        return res.status(200).send(formattedBooks);
-    } else {
-        return res.status(404).json({ message: "Book not found" });
+        const reviews = books[isbn].reviews;
+
+        // If no reviews exist, return a clear message
+        if (Object.keys(reviews).length === 0) {
+            return res.status(200).json({ message: "No reviews available for this book." });
+        }
+
+        // If reviews exist, return them as JSON
+        return res.status(200).json(reviews);
+
+    } catch (err) {
+        // Handle unexpected errors
+        return res.status(500).json({ 
+            message: "Error fetching book reviews", 
+            error: err.message 
+        });
     }
 });
+
 
 module.exports.general = public_users;
