@@ -143,24 +143,35 @@ public_users.get('/title/:title', async (req, res) => {
 });
 
 
-//  Get book review
-public_users.get('/review/:isbn', function (req, res) {
-    const isbn = req.params.isbn; // get ISBN from URL
+// ---------------------
+// Get book reviews by ISBN
+// ---------------------
+public_users.get('/review/:isbn', async (req, res) => {
+    const isbn = req.params.isbn; // Extract ISBN from URL
 
-    if (books[isbn]) {
-        // Send only the reviews object
-        const entries = Object.entries(books[isbn].reviews).map(
-            ([key, value]) => `"${key}":${JSON.stringify(value)}`
-        );
-        const formattedBooks = `{\n${entries.join(",\n")}\n}`;
+    try {
+        // Check if book exists
+        if (!books[isbn]) {
+            return res.status(404).json({ message: "Book not found" });
+        }
 
-        // Send as plain text so line breaks are visible
-        res.setHeader('Content-Type', 'text/plain');
+        const reviews = books[isbn].reviews;
 
-        return res.status(200).send(formattedBooks);
-    } else {
-        return res.status(404).json({ message: "Book not found" });
+        // If no reviews exist, return a clear message
+        if (Object.keys(reviews).length === 0) {
+            return res.status(200).json({ message: "No reviews available for this book." });
+        }
+
+        // If reviews exist, return them
+        return res.status(200).json(reviews);
+    } catch (err) {
+        // Handle unexpected errors
+        return res.status(500).json({ 
+            message: "Error fetching book reviews", 
+            error: err.message 
+        });
     }
 });
+
 
 module.exports.general = public_users;
